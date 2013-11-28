@@ -4,7 +4,7 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 
 ## Todo
 
-* npmpcpp sets volume to 0 on start --> npmpcpp problem?
+* --npmpcpp sets volume to 0 on start -> npmpcpp problem?-- gone for no apparent reason.
 
 ## Plan
 
