@@ -34,3 +34,5 @@ Pi runs Mopidy music server. Possibly also a REST API that connects to it, but t
 * sudo apt-get remove mopidy because pip is preferred because plugins
 * sudo pip install Mopidy Mopidy-SoundCloud
 * sudo apt-get install python-serial because Arduino
+* sudo pip install mopidy-radio-de
+* sudo pip install python-mpd2
