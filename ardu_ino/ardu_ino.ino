@@ -20,7 +20,7 @@ void setup() {
 void readVolume() {
   float vol = analogRead( VOLUME_PIN );
   currentVolume = floor( vol / 1023.0 * 100 );  // convert to percentage
-  currentVolume = currentVolume - ( currentVolume % 10 ); // round down to next 5-step
+  currentVolume = currentVolume - ( currentVolume % 10 ); // round down to next 10-step
 }
 
 void loop() {
@@ -29,7 +29,7 @@ void loop() {
     // someone actually changed the volume!
     Serial.print( "CMD SET VOLUME " );
     Serial.println( currentVolume );
-    delay( 100 );
+    delay( 50 );
     lastVolume = currentVolume;
   }
 }
