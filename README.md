@@ -5,9 +5,10 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 ## Todo
 
 * Mopidy-SoundCloud extension may cause client to timeout because synchronous loading of tracks. Check later if problem persists without npmcpp.
-* Fade volume in pi2uno at least a teeny bit - nicer to the ears
+* Fade volume in pi2uno at least a teeny bit — nicer to the ears
 * Switch SC playlists or radio stations with potentiometer
-* Persist state of radio (volume, last source+channel) anywhere
+* Persist state of radio (volume, last source+channel) somewhere
+* Load persisted state at radio start
 * Working automatic boot of radio (start mopidy+pi2uno)
 * White noise between channels
 
@@ -30,9 +31,9 @@ Pi runs Mopidy music server. Possibly also a REST API that connects to it, but t
 ## Reality
 
 * install only pip 1.2.1 because SSL!
-* sudo apt-get install mopidy because dependencies (first add mopidy repos to apt)
-* sudo apt-get remove mopidy because pip is preferred because plugins
-* sudo pip install Mopidy Mopidy-SoundCloud
-* sudo apt-get install python-serial because Arduino
-* sudo pip install mopidy-radio-de
-* sudo pip install python-mpd2
+* ``sudo apt-get install mopidy`` because dependencies (first add mopidy repos to apt)
+* ``sudo apt-get remove mopidy`` because pip is preferred because plugins
+* ``sudo pip install Mopidy Mopidy-SoundCloud``
+* ``sudo apt-get install python-serial`` because Arduino
+* ``sudo pip install mopidy-radio-de``
+* ``sudo pip install python-mpd2``
