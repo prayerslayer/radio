@@ -4,7 +4,12 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 
 ## Todo
 
-* --npmpcpp sets volume to 0 on start -> npmpcpp problem?-- gone for no apparent reason.
+* Mopidy-SoundCloud extension may cause client to timeout because synchronous loading of tracks. Check later if problem persists without npmcpp.
+* Fade volume in pi2uno at least a teeny bit - nicer to the ears
+* Switch SC playlists or radio stations with potentiometer
+* Persist state of radio (volume, last source+channel) anywhere
+* Working automatic boot of radio (start mopidy+pi2uno)
+* White noise between channels
 
 ## Plan
 
