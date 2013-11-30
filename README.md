@@ -22,7 +22,7 @@ Pi runs Mopidy music server. Possibly also a REST API that connects to it, but t
 * 1x Wifi Dongle for Pi
 * 1x Power for Pi
 * 1x Arduino Uno
-* 2x Potentiometer (for setting "frequency" and volume)
+* 2x **Rotary encoders** (for setting "frequency" and volume)
 * 1x flip switch for on/off
 * 2x LED (green/red)
 * 2x wheels that turn potentiometers
