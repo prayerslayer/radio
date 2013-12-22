@@ -16,11 +16,13 @@ NMBR_REGEX  = re.compile( "\D*(\d{1,3})" ) # anything but a digit with 1 to 3 di
 
 # ==== SETUP =====
 
+print "Pi 2 Uno connection establishing..."
+
 # connect to arduino uno
 uno = serial.Serial( "/dev/ttyACM0", 9600, timeout=1 )
 
-# wait 5 sec
-sleep( 5 )
+# wait 18 sec
+sleep( 18 )
 
 # connect to mpd
 mop = MPDClient()
@@ -55,13 +57,15 @@ def processCommand( input ):
 
 # ==== LOOP ====
 
+print "Pi 2 Uno loop running..."
+
 # there really is no keyword for true in python 2
 command = "noop"
 
 while 1:
 	# read serial from arduino
 	command = uno.readline()
-	print "DEBUG: " + command
+	#print "DEBUG: " + command
 	# repeat if there is no command
 	if len( command ) > 0:
 		processCommand( command )
