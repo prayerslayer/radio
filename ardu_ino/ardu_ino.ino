@@ -94,7 +94,7 @@ void loop() {
   processSerial();
   
   readVolume();
-  if ( currentVolume != lastVolume && DEVICE_STATUS == DEVICE_STATUS_UP ) {
+  if ( currentVolume != lastVolume ) {
     // someone actually changed the volume!
     Serial.print( "CMD SET VOLUME " );
     Serial.println( currentVolume );
