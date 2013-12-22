@@ -4,13 +4,14 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 
 ## Todo
 
-* Mopidy-SoundCloud extension may cause client to timeout because synchronous loading of tracks. Check later if problem persists without npmcpp.
-* Fade volume in pi2uno at least a teeny bit — nicer to the ears
-* Switch SC playlists or radio stations with potentiometer
 * Persist state of radio (volume, last source+channel) somewhere
 * Load persisted state at radio start
 * Working automatic boot of radio (start mopidy+pi2uno)
+* Mopidy-SoundCloud extension may cause client to timeout because synchronous loading of tracks. Check later if problem persists without npmcpp.
+* Fade volume in pi2uno at least a teeny bit — nicer to the ears
+* Switch SC playlists or radio stations with potentiometer
 * White noise between channels
+* Arduino needs quite long to get out of WAIT status. This is because it can only read one char/loop from serial and 2 seconds/loop are used for blinking the status LED. Equals to 12 seconds (6 chars * 2 seconds/loop).
 
 ## Plan
 
