@@ -1,6 +1,7 @@
 #include "math.h"
 
 int STATUS_LED_PIN = 13;
+int STATION_PIN = A1;  // pin to control radio stations from given source
 int VOLUME_PIN = A0;  // pin with cable for volume potentiometer
 int MAX_VOLUME = 100;
 
@@ -10,13 +11,17 @@ int DEVICE_STATUS_UP = 1;    // led is on
 
 int lastVolume = 70;
 int currentVolume = 70;  //TODO this should be set in setup from the pi
+
+int lastStation = 0;
+int currentStation = 0;  // TODO should be set
+
 String piCommand = "";
 
 // taken from http://hacking.majenko.co.uk/reading-serial-on-the-arduino
 int readSerialLine(int readch, char *buffer, int len) {
   static int pos = 0;
   int rpos;
-  
+  piCommand = "";
   if ( readch > 0) {
     switch (readch) {
       case '\n': // Ignore new-lines
@@ -56,6 +61,16 @@ void readVolume() {
   float vol = analogRead( VOLUME_PIN );
   currentVolume = floor( vol / 1023.0 * 100 );  // convert to percentage
   currentVolume = currentVolume - ( currentVolume % 10 ); // round down to next 10-step
+}
+
+void readStation() {
+  float vol = analogRead( STATION_PIN );
+  if ( vol < 384 )
+    currentStation = -1;
+  else if ( vol >= 384 && vol <= 640 )
+    currentStation = 0;
+  else
+    currentStation = 1;
 }
 
 void setup() {
@@ -98,8 +113,15 @@ void loop() {
     // someone actually changed the volume!
     Serial.print( "CMD SET VOLUME " );
     Serial.println( currentVolume );
-    delay( 50 );
     lastVolume = currentVolume;
+  }
+  readStation();
+  if ( currentStation != lastStation ) {
+    if ( currentStation == 1 )
+      Serial.println( "CMD SET STATION NEXT" );
+    else if ( currentStation == -1 )
+      Serial.println( "CMD SET STATION PREVIOUS" );
+    lastStation = currentStation;
   }
 }
 
