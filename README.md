@@ -2,7 +2,17 @@
 
 Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 
-## Todo
+# Setup
+
+0. Install necessary software on Pi (see section "Dependencies")
+1. Connect Arduino and Pi via USB interface
+2. Deploy Arduino Code on Arduino, modify pins as needed
+3. Create folder ~/.radio on Pi
+4. Put pi2uno.py there, modify Mopidy or Arduino ports as needed
+5. Run ``start-radio.sh`` on Pi after every boot
+6. Profit
+
+# Todo
 
 * Persist state of radio (volume, last source+channel) somewhere
 * Load persisted state at radio start
@@ -29,7 +39,7 @@ Pi runs Mopidy music server. Possibly also a REST API that connects to it, but t
 * 2x wheels that turn potentiometers
 * 1x 3-button-pop-out-switch-whatever 
 
-## Reality
+# Dependencies
 
 * install only pip 1.2.1 because SSL!
 * ``sudo apt-get install mopidy`` because dependencies (first add mopidy repos to apt)
