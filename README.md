@@ -4,10 +4,16 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 
 # Setup
 
+## Hardware
+
+tba
+
+## Software
+
 0. Install necessary software on Pi (see section "Dependencies")
 1. Connect Arduino and Pi via USB interface
 2. Deploy Arduino Code on Arduino, modify pins as needed
-3. Create folder ~/.radio on Pi
+3. Create folder ``~/.radio`` on Pi
 4. Put pi2uno.py there, modify Mopidy or Arduino ports as needed
 5. Run ``start-radio.sh`` on Pi after every boot
 6. Profit
@@ -19,9 +25,9 @@ Raspberry Pi + Mopidy + Plugins (SoundCloud, Internet Radio) + Arduino.
 * Working automatic boot of radio (start mopidy+pi2uno)
 * Mopidy-SoundCloud extension may cause client to timeout because synchronous loading of tracks. Check later if problem persists without npmcpp.
 * Fade volume in pi2uno at least a teeny bit — nicer to the ears
-* Switch SC playlists or radio stations with potentiometer
+* Switch sources and channels
 * White noise between channels
-* Arduino needs quite long to get out of WAIT status. This is because it can only read one char/loop from serial and 2 seconds/loop are used for blinking the status LED. Equals to 12 seconds (6 chars * 2 seconds/loop).
+* Arduino needs quite long to get out of WAIT status. This is because it can only read 1 char/loop from serial and 2 seconds/loop are used for blinking the status LED. Equals to 12 seconds (6 chars * 2 seconds/loop).
 
 ## Plan
 
