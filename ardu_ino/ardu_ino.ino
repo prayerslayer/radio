@@ -1,15 +1,31 @@
 #include "math.h"
 
-int STATION_PIN = A0;
 int STATUS_LED_PIN = 13;
-int VOLUME_UP_PIN = 2;
-int VOLUME_DN_PIN = 3;
+int VOLUME_UP_PIN = 4;
+int VOLUME_DN_PIN = 6;
+int STATION_UP_PIN = 2;
+int STATION_DN_PIN = 3;
+
+int MIN_STATION = 0;
+int MAX_STATION = 7;
+int MIN_VOLUME = 0;
 int MAX_VOLUME = 100;
 
 int DEVICE_STATUS = -1;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
 
+
+// station variables
+volatile int stat_seqstore = 0;
+volatile int stat_encoded = 0b11;
+volatile int stat_lastEncoded = 0;
+volatile long stat_encoderValue = 0;
+volatile long stat_lastEncoderValue = 0;
+volatile int stat_MSB = 1;
+volatile int stat_LSB = 1;
+
+// volume variables
 volatile int vol_seqstore = 0;
 volatile int vol_encoded = 0b11;
 volatile int vol_lastEncoded = 0;
@@ -54,8 +70,6 @@ void readSerial() {
   static char buffer[ 128 ];
   if ( readSerialLine ( Serial.read(), buffer, 128 ) > 0 ) {
     piCommand = buffer;
-    Serial.print( "Your wish: " );
-    Serial.println( piCommand );
   }
 }
 
@@ -74,13 +88,10 @@ void readVolume() {
 }
 
 void readStation() {
-  float vol = analogRead( STATION_PIN );
-  if ( vol < 384 )
-    currentStation = -1;
-  else if ( vol >= 384 && vol <= 640 )
-    currentStation = 0;
-  else
-    currentStation = 1;
+  if ( currentStation == stat_encoderValue ) {
+    return;
+  }
+  currentStation = stat_encoderValue;
 }
 
 void setup() {
@@ -132,7 +143,7 @@ void updateVolume() {
     // 00 01 11 10 =  30
     if ( vol_seqstore == 135 || vol_seqstore == 225 || vol_seqstore == 120 || vol_seqstore == 30  ) {
       // decremenet only if we're not going under minimum volume
-      if ( vol_encoderValue >= 0 )
+      if ( vol_encoderValue >= MIN_VOLUME )
         vol_encoderValue--;
     }
     // clockwise code is 01 00 10 11 (75) and all its permutations:
@@ -141,8 +152,44 @@ void updateVolume() {
     // 11 01 00 10 = 210
     if ( vol_seqstore == 75 || vol_seqstore == 45 || vol_seqstore == 180 || vol_seqstore == 210 ) {
       // increment only if we're not going over maximum volume
-      if ( vol_encoderValue <= 100 )
+      if ( vol_encoderValue <= MAX_VOLUME
         vol_encoderValue++;
+    }
+  }
+}
+
+void updateStation() {
+  stat_MSB = digitalRead( STATION_UP_PIN );
+  stat_LSB = digitalRead( STATION_DN_PIN );
+  
+  stat_encoded = ( stat_MSB << 1 ) | stat_LSB; //converting the 2 pin value to single number
+
+  if ( ( stat_seqstore & 0x3 ) != stat_encoded ) { 
+    // at least one of the bits has changed compared to last stable state
+    // (interrupt might bounce )
+    stat_seqstore = stat_seqstore << 2; //shift the next sequence step
+    stat_seqstore |= stat_encoded; // add encoded value
+    stat_seqstore = stat_seqstore & 0b11111111; // only keep last 8 bits
+    
+    stat_lastEncoderValue = stat_encoderValue;
+    
+    // counter-clockwise code is 10 00 01 11 (135) and all its permutations:
+    // 11 10 00 01 = 225
+    // 01 11 10 00 = 120
+    // 00 01 11 10 =  30
+    if ( stat_seqstore == 135 || stat_seqstore == 225 || stat_seqstore == 120 || stat_seqstore == 30  ) {
+      // decremenet only if we're not going under minimum volume
+      if ( stat_encoderValue >= MIN_STATION )
+        stat_encoderValue--;
+    }
+    // clockwise code is 01 00 10 11 (75) and all its permutations:
+    // 00 10 11 01 =  45
+    // 10 11 01 00 = 180
+    // 11 01 00 10 = 210
+    if ( stat_seqstore == 75 || stat_seqstore == 45 || stat_seqstore == 180 || stat_seqstore == 210 ) {
+      // increment only if we're not going over maximum volume
+      if ( stat_encoderValue <= MAX_STATION )
+        stat_encoderValue++;
     }
   }
 }
@@ -177,9 +224,10 @@ void loop() {
   }
   readStation();
   if ( currentStation != lastStation ) {
-    if ( currentStation == 1 )
+    int diff = currentStation - lastStation;
+    if ( diff > 0 )
       Serial.println( "CMD SET STATION NEXT" );
-    else if ( currentStation == -1 )
+    else if ( diff < 0 )
       Serial.println( "CMD SET STATION PREVIOUS" );
     lastStation = currentStation;
   }
