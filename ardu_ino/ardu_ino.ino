@@ -70,14 +70,6 @@ void readVolume() {
   if ( currentVolume == vol_encoderValue ) {
     return;
   }
-  if ( vol_encoderValue >= 100 ) {
-    currentVolume = 100;
-    return;
-  } 
-  if ( vol_encoderValue <= 0 ) {
-    currentVolume = 0;
-    return;
-  }
   currentVolume = vol_encoderValue;
 }
 
@@ -139,14 +131,18 @@ void updateVolume() {
     // 01 11 10 00 = 120
     // 00 01 11 10 =  30
     if ( vol_seqstore == 135 || vol_seqstore == 225 || vol_seqstore == 120 || vol_seqstore == 30  ) {
-      vol_encoderValue--;
+      // decremenet only if we're not going under minimum volume
+      if ( vol_encoderValue >= 0 )
+        vol_encoderValue--;
     }
     // clockwise code is 01 00 10 11 (75) and all its permutations:
     // 00 10 11 01 =  45
     // 10 11 01 00 = 180
     // 11 01 00 10 = 210
     if ( vol_seqstore == 75 || vol_seqstore == 45 || vol_seqstore == 180 || vol_seqstore == 210 ) {
-      vol_encoderValue++;
+      // increment only if we're not going over maximum volume
+      if ( vol_encoderValue <= 100 )
+        vol_encoderValue++;
     }
   }
 }
