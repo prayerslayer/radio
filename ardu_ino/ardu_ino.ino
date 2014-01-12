@@ -8,6 +8,7 @@ int STATION_DN_PIN = 3;
 
 int MIN_STATION = 0;
 int MAX_STATION = 7;
+int STATION_OFFSET = 8; // rotations until station is switched
 int MIN_VOLUME = 0;
 int MAX_VOLUME = 100;
 
@@ -91,7 +92,7 @@ void readStation() {
   if ( currentStation == stat_encoderValue ) {
     return;
   }
-  currentStation = stat_encoderValue;
+  currentStation = stat_encoderValue / STATION_OFFSET;
 }
 
 void setup() {
@@ -103,10 +104,14 @@ void setup() {
   pinMode( VOLUME_DN_PIN, INPUT );
   digitalWrite( VOLUME_DN_PIN, HIGH );
   digitalWrite( VOLUME_UP_PIN, HIGH );
+  pinMode( STATION_UP_PIN, INPUT );
+  pinMode( STATION_DN_PIN, INPUT );
+  digitalWrite( STATION_UP_PIN, HIGH );
+  digitalWrite( STATION_DN_PIN, HIGH );
   
   // ints
-  attachInterrupt( 0, updateVolume, CHANGE );
-  attachInterrupt( 1, updateVolume, CHANGE );
+  attachInterrupt( 0, updateStation, CHANGE );
+  attachInterrupt( 1, updateStation, CHANGE );
   
   DEVICE_STATUS = DEVICE_STATUS_WAIT;
   
@@ -152,7 +157,7 @@ void updateVolume() {
     // 11 01 00 10 = 210
     if ( vol_seqstore == 75 || vol_seqstore == 45 || vol_seqstore == 180 || vol_seqstore == 210 ) {
       // increment only if we're not going over maximum volume
-      if ( vol_encoderValue <= MAX_VOLUME
+      if ( vol_encoderValue <= MAX_VOLUME )
         vol_encoderValue++;
     }
   }
@@ -179,7 +184,7 @@ void updateStation() {
     // 00 01 11 10 =  30
     if ( stat_seqstore == 135 || stat_seqstore == 225 || stat_seqstore == 120 || stat_seqstore == 30  ) {
       // decremenet only if we're not going under minimum volume
-      if ( stat_encoderValue >= MIN_STATION )
+      if ( stat_encoderValue >= 0 )
         stat_encoderValue--;
     }
     // clockwise code is 01 00 10 11 (75) and all its permutations:
@@ -188,7 +193,7 @@ void updateStation() {
     // 11 01 00 10 = 210
     if ( stat_seqstore == 75 || stat_seqstore == 45 || stat_seqstore == 180 || stat_seqstore == 210 ) {
       // increment only if we're not going over maximum volume
-      if ( stat_encoderValue <= MAX_STATION )
+      if ( stat_encoderValue <= MAX_STATION * STATION_OFFSET )
         stat_encoderValue++;
     }
   }
