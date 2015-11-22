@@ -1,18 +1,16 @@
 #include "math.h"
 
 int STATUS_LED_PIN = 13;
-int VOLUME_UP_PIN = 4;
-int VOLUME_DN_PIN = 6;
-int STATION_UP_PIN = 2;
-int STATION_DN_PIN = 3;
+int VOLUME_UP_PIN = 18;
+int VOLUME_DN_PIN = 19;
+int STATION_UP_PIN = 20;
+int STATION_DN_PIN = 21;
 
-int MIN_STATION = 0;
-int MAX_STATION = 7;
-int STATION_OFFSET = 8; // rotations until station is switched
+int NUM_STATIONS = 8;
 int MIN_VOLUME = 0;
 int MAX_VOLUME = 100;
 
-int DEVICE_STATUS = -1;
+int DEVICE_STATUS = 1;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
 
@@ -92,7 +90,7 @@ void readStation() {
   if ( currentStation == stat_encoderValue ) {
     return;
   }
-  currentStation = stat_encoderValue / STATION_OFFSET;
+  currentStation = stat_encoderValue;
 }
 
 void setup() {
@@ -110,11 +108,10 @@ void setup() {
   digitalWrite( STATION_DN_PIN, HIGH );
   
   // ints
-  attachInterrupt( 0, updateStation, CHANGE );
-  attachInterrupt( 1, updateStation, CHANGE );
-  
-  DEVICE_STATUS = DEVICE_STATUS_WAIT;
-  
+  attachInterrupt( digitalPinToInterrupt(VOLUME_UP_PIN), updateVolume, CHANGE );
+  attachInterrupt( digitalPinToInterrupt(VOLUME_DN_PIN), updateVolume, CHANGE );
+  attachInterrupt( digitalPinToInterrupt(STATION_UP_PIN), updateStation, CHANGE );
+  attachInterrupt( digitalPinToInterrupt(STATION_DN_PIN), updateStation, CHANGE );
   
   Serial.println( "Running internal setup" );
   // do some stuff?
@@ -130,34 +127,37 @@ void setup() {
 void updateVolume() {
   vol_MSB = digitalRead( VOLUME_UP_PIN );
   vol_LSB = digitalRead( VOLUME_DN_PIN );
-  
-  vol_encoded = ( vol_MSB << 1 ) | vol_LSB; //converting the 2 pin value to single number
 
-  if ( ( vol_seqstore & 0x3 ) != vol_encoded ) { 
+  vol_encoded = ( vol_MSB << 1 ) | vol_LSB; //converting the 2 pin value to single number
+  if ( ( vol_seqstore & 0x3 ) != vol_encoded ) {
     // at least one of the bits has changed compared to last stable state
     // (interrupt might bounce )
     vol_seqstore = vol_seqstore << 2; //shift the next sequence step
     vol_seqstore |= vol_encoded; // add encoded value
-    vol_seqstore = vol_seqstore & 0b11111111; // only keep last 8 bits
+    vol_seqstore = vol_seqstore & 0b1111; // only keep last 4 bits
     
     vol_lastEncoderValue = vol_encoderValue;
+
+    //            <==  |  ==> 
+    // grey code: 00 01 11 10
     
-    // counter-clockwise code is 10 00 01 11 (135) and all its permutations:
-    // 11 10 00 01 = 225
-    // 01 11 10 00 = 120
-    // 00 01 11 10 =  30
-    if ( vol_seqstore == 135 || vol_seqstore == 225 || vol_seqstore == 120 || vol_seqstore == 30  ) {
+    // to the left
+    if ( vol_seqstore == 0b0100 ||
+         vol_seqstore == 0b1101 ||
+         vol_seqstore == 0b1011 ||
+         vol_seqstore == 0b0010) {
       // decremenet only if we're not going under minimum volume
-      if ( vol_encoderValue >= MIN_VOLUME )
+      if ( vol_encoderValue > MIN_VOLUME )
         vol_encoderValue--;
     }
-    // clockwise code is 01 00 10 11 (75) and all its permutations:
-    // 00 10 11 01 =  45
-    // 10 11 01 00 = 180
-    // 11 01 00 10 = 210
-    if ( vol_seqstore == 75 || vol_seqstore == 45 || vol_seqstore == 180 || vol_seqstore == 210 ) {
+    
+    // to the right
+    if ( vol_seqstore == 0b0001 ||
+         vol_seqstore == 0b0111 ||
+         vol_seqstore == 0b1110 ||
+         vol_seqstore == 0b1000) {
       // increment only if we're not going over maximum volume
-      if ( vol_encoderValue <= MAX_VOLUME )
+      if ( vol_encoderValue < MAX_VOLUME )
         vol_encoderValue++;
     }
   }
@@ -169,32 +169,32 @@ void updateStation() {
   
   stat_encoded = ( stat_MSB << 1 ) | stat_LSB; //converting the 2 pin value to single number
 
-  if ( ( stat_seqstore & 0x3 ) != stat_encoded ) { 
+  if ( ( stat_seqstore & 0x3 ) != stat_encoded ) {
+    Serial.print("> ");
+    Serial.print(stat_MSB);
+    Serial.println(stat_LSB); 
     // at least one of the bits has changed compared to last stable state
     // (interrupt might bounce )
     stat_seqstore = stat_seqstore << 2; //shift the next sequence step
     stat_seqstore |= stat_encoded; // add encoded value
-    stat_seqstore = stat_seqstore & 0b11111111; // only keep last 8 bits
+    stat_seqstore = stat_seqstore & 0b1111; // only keep last 4 bits
     
     stat_lastEncoderValue = stat_encoderValue;
     
-    // counter-clockwise code is 10 00 01 11 (135) and all its permutations:
-    // 11 10 00 01 = 225
-    // 01 11 10 00 = 120
-    // 00 01 11 10 =  30
-    if ( stat_seqstore == 135 || stat_seqstore == 225 || stat_seqstore == 120 || stat_seqstore == 30  ) {
-      // decremenet only if we're not going under minimum volume
-      if ( stat_encoderValue >= 0 )
-        stat_encoderValue--;
+    // to the left
+    if ( stat_seqstore == 0b0100 ||
+         stat_seqstore == 0b1101 ||
+         stat_seqstore == 0b1011 ||
+         stat_seqstore == 0b0010) {
+      stat_encoderValue = (stat_encoderValue - 1) % NUM_STATIONS;
     }
-    // clockwise code is 01 00 10 11 (75) and all its permutations:
-    // 00 10 11 01 =  45
-    // 10 11 01 00 = 180
-    // 11 01 00 10 = 210
-    if ( stat_seqstore == 75 || stat_seqstore == 45 || stat_seqstore == 180 || stat_seqstore == 210 ) {
-      // increment only if we're not going over maximum volume
-      if ( stat_encoderValue <= MAX_STATION * STATION_OFFSET )
-        stat_encoderValue++;
+    
+    // to the right
+    if ( stat_seqstore == 0b0001 ||
+         stat_seqstore == 0b0111 ||
+         stat_seqstore == 0b1110 ||
+         stat_seqstore == 0b1000) {
+      stat_encoderValue = (stat_encoderValue + 1) % NUM_STATIONS;
     }
   }
 }
@@ -229,11 +229,8 @@ void loop() {
   }
   readStation();
   if ( currentStation != lastStation ) {
-    int diff = currentStation - lastStation;
-    if ( diff > 0 )
-      Serial.println( "CMD SET STATION NEXT" );
-    else if ( diff < 0 )
-      Serial.println( "CMD SET STATION PREVIOUS" );
+    Serial.print( "CMD SET STATION ");
+    Serial.println( currentStation);
     lastStation = currentStation;
   }
 }
