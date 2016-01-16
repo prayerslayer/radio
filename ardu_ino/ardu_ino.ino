@@ -6,11 +6,10 @@ int VOLUME_DN_PIN = 19;
 int STATION_UP_PIN = 20;
 int STATION_DN_PIN = 21;
 
-int NUM_STATIONS = 8;
-int MIN_VOLUME = 0;
-int MAX_VOLUME = 100;
+int currentVolume = 0;
+int currentStation = 0;
 
-int DEVICE_STATUS = 1;
+int DEVICE_STATUS = 0;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
 
@@ -32,12 +31,6 @@ volatile long vol_encoderValue = 0;
 volatile long vol_lastEncoderValue = 0;
 volatile int vol_MSB = 1;
 volatile int vol_LSB = 1;
-
-int lastVolume = 70;
-int currentVolume = 70;  //TODO this should be set in setup from the pi
-
-int lastStation = 0;
-int currentStation = 0;  // TODO should be set
 
 String piCommand = "";
 
@@ -72,25 +65,14 @@ void readSerial() {
   }
 }
 
-void processSerial() {
-  if ( piCommand.startsWith( "CMD SET VOLUME" ) ) {
-    currentVolume = piCommand.substring( 16, piCommand.length() - 1 ).toInt();
-    lastVolume = currentVolume;
-  }
-}
-
 void readVolume() {
-  if ( currentVolume == vol_encoderValue ) {
-    return;
-  }
   currentVolume = vol_encoderValue;
+  vol_encoderValue = 0;
 }
 
 void readStation() {
-  if ( currentStation == stat_encoderValue ) {
-    return;
-  }
   currentStation = stat_encoderValue;
+  stat_encoderValue = 0;
 }
 
 void setup() {
@@ -120,10 +102,6 @@ void setup() {
   digitalWrite( STATUS_LED_PIN, HIGH );
 }
 
-/*
-*  Apparently the encoder I use produces 11 01 00 10 for one step.
-*  So I have to check for 11 01 00 10 or 01 00 10 11 pattern
-*/
 void updateVolume() {
   vol_MSB = digitalRead( VOLUME_UP_PIN );
   vol_LSB = digitalRead( VOLUME_DN_PIN );
@@ -146,9 +124,7 @@ void updateVolume() {
          vol_seqstore == 0b1101 ||
          vol_seqstore == 0b1011 ||
          vol_seqstore == 0b0010) {
-      // decremenet only if we're not going under minimum volume
-      if ( vol_encoderValue > MIN_VOLUME )
-        vol_encoderValue--;
+        vol_encoderValue = -1;
     }
     
     // to the right
@@ -156,13 +132,12 @@ void updateVolume() {
          vol_seqstore == 0b0111 ||
          vol_seqstore == 0b1110 ||
          vol_seqstore == 0b1000) {
-      // increment only if we're not going over maximum volume
-      if ( vol_encoderValue < MAX_VOLUME )
-        vol_encoderValue++;
+        vol_encoderValue = 1;
     }
   }
 }
 
+//TODO always jumps 4 stations up and down o.O
 void updateStation() {
   stat_MSB = digitalRead( STATION_UP_PIN );
   stat_LSB = digitalRead( STATION_DN_PIN );
@@ -170,9 +145,9 @@ void updateStation() {
   stat_encoded = ( stat_MSB << 1 ) | stat_LSB; //converting the 2 pin value to single number
 
   if ( ( stat_seqstore & 0x3 ) != stat_encoded ) {
-    Serial.print("> ");
-    Serial.print(stat_MSB);
-    Serial.println(stat_LSB); 
+    // Serial.print("> ");
+    // Serial.print(stat_MSB);
+    // Serial.println(stat_LSB); 
     // at least one of the bits has changed compared to last stable state
     // (interrupt might bounce )
     stat_seqstore = stat_seqstore << 2; //shift the next sequence step
@@ -186,7 +161,7 @@ void updateStation() {
          stat_seqstore == 0b1101 ||
          stat_seqstore == 0b1011 ||
          stat_seqstore == 0b0010) {
-      stat_encoderValue = (stat_encoderValue - 1) % NUM_STATIONS;
+      stat_encoderValue = -1;
     }
     
     // to the right
@@ -194,18 +169,15 @@ void updateStation() {
          stat_seqstore == 0b0111 ||
          stat_seqstore == 0b1110 ||
          stat_seqstore == 0b1000) {
-      stat_encoderValue = (stat_encoderValue + 1) % NUM_STATIONS;
+      stat_encoderValue = 1;
     }
   }
 }
 
 void loop() {
   readSerial();
-  
-  if ( piCommand == "CMD WAIT" ) {
-    DEVICE_STATUS = DEVICE_STATUS_WAIT;
-  }
-  if ( piCommand == "CMD RUN" ) {
+
+  if ( piCommand == "OK" ) {
     DEVICE_STATUS = DEVICE_STATUS_UP;
   }
   
@@ -218,20 +190,17 @@ void loop() {
     delay( 1000 );
     return;
   }
-  processSerial();
   
   readVolume();
-  if ( currentVolume != lastVolume ) {
+  if ( currentVolume != 0 ) {
     // someone actually changed the volume!
-    Serial.print( "CMD SET VOLUME " );
-    Serial.println( currentVolume );
-    lastVolume = currentVolume;
+    Serial.print( "V" );
+    Serial.println( currentVolume > 0 ? "+" : "-");
   }
   readStation();
-  if ( currentStation != lastStation ) {
-    Serial.print( "CMD SET STATION ");
-    Serial.println( currentStation);
-    lastStation = currentStation;
+  if ( currentStation != 0 ) {
+    Serial.print( "C");
+    Serial.println( currentStation > 0 ? "+" : "-");
   }
 }
 
