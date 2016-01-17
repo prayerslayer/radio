@@ -3,7 +3,7 @@ const int VOLUME_UP_PIN = 3;
 const int VOLUME_DN_PIN = 2;
 const int CHANNEL_PINS[] = {8, 9};
 
-int currentChannel = 0;
+int currentChannel = -1;
 int currentVolume = 0;
 
 int DEVICE_STATUS = 0;
