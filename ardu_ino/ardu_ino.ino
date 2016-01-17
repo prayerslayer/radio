@@ -9,7 +9,7 @@ int STATION_DN_PIN = 21;
 int currentVolume = 0;
 int currentStation = 0;
 
-int DEVICE_STATUS = 0;
+int DEVICE_STATUS = 1;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
 
@@ -22,6 +22,8 @@ volatile long stat_encoderValue = 0;
 volatile long stat_lastEncoderValue = 0;
 volatile int stat_MSB = 1;
 volatile int stat_LSB = 1;
+volatile int stat_encoderValues[] = { 0, 0, 0, 0 };
+volatile int stat_encoderValueIndex = -1; 
 
 // volume variables
 volatile int vol_seqstore = 0;
@@ -71,8 +73,26 @@ void readVolume() {
 }
 
 void readStation() {
-  currentStation = stat_encoderValue;
-  stat_encoderValue = 0;
+  // reset station
+  if (currentStation != 0) {
+    currentStation = 0;
+  }
+  if (stat_encoderValueIndex == 0) {
+    int sum = 0;
+    for(int i = 0; i < sizeof(stat_encoderValues) - 1; i++) {
+      int reading = stat_encoderValues[i];
+      stat_encoderValues[i] = 0;
+      sum += reading;
+    }
+    if (sum > 0) {
+      currentStation = 1;
+    }
+    else if (sum < 0) {
+      currentStation = -1;
+    } else {
+      currentStation = 0;
+    }
+  }
 }
 
 void setup() {
@@ -145,9 +165,6 @@ void updateStation() {
   stat_encoded = ( stat_MSB << 1 ) | stat_LSB; //converting the 2 pin value to single number
 
   if ( ( stat_seqstore & 0x3 ) != stat_encoded ) {
-    // Serial.print("> ");
-    // Serial.print(stat_MSB);
-    // Serial.println(stat_LSB); 
     // at least one of the bits has changed compared to last stable state
     // (interrupt might bounce )
     stat_seqstore = stat_seqstore << 2; //shift the next sequence step
@@ -161,7 +178,8 @@ void updateStation() {
          stat_seqstore == 0b1101 ||
          stat_seqstore == 0b1011 ||
          stat_seqstore == 0b0010) {
-      stat_encoderValue = -1;
+      stat_encoderValueIndex = (stat_encoderValueIndex + 1) % 4;
+      stat_encoderValues[stat_encoderValueIndex] = -1;
     }
     
     // to the right
@@ -169,9 +187,17 @@ void updateStation() {
          stat_seqstore == 0b0111 ||
          stat_seqstore == 0b1110 ||
          stat_seqstore == 0b1000) {
-      stat_encoderValue = 1;
+      stat_encoderValueIndex = (stat_encoderValueIndex + 1) % 4;
+      stat_encoderValues[stat_encoderValueIndex] = 1;
     }
   }
+}
+
+void blink(int n) {
+  digitalWrite( STATUS_LED_PIN, LOW);
+  delay(n);
+  digitalWrite( STATUS_LED_PIN, HIGH);
+  delay(n);
 }
 
 void loop() {
@@ -184,21 +210,20 @@ void loop() {
   // do nothing if no okay-dokey from pi arrived yet
   if ( DEVICE_STATUS != DEVICE_STATUS_UP ) {
     // just blink the status led
-    digitalWrite( STATUS_LED_PIN, LOW );
-    delay( 1000 );
-    digitalWrite( STATUS_LED_PIN, HIGH );
-    delay( 1000 );
+    blink(1000);
     return;
   }
   
   readVolume();
   if ( currentVolume != 0 ) {
     // someone actually changed the volume!
+    blink(100);
     Serial.print( "V" );
     Serial.println( currentVolume > 0 ? "+" : "-");
   }
   readStation();
   if ( currentStation != 0 ) {
+    blink(100);
     Serial.print( "C");
     Serial.println( currentStation > 0 ? "+" : "-");
   }
