@@ -6,7 +6,7 @@ const int CHANNEL_PINS[] = {8, 9};
 int currentChannel = 0;
 int currentVolume = 0;
 
-int DEVICE_STATUS = 1;
+int DEVICE_STATUS = 0;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
 
