@@ -3,6 +3,7 @@ const int VOLUME_UP_PIN = 3;
 const int VOLUME_DN_PIN = 2;
 const int CHANNEL_PINS[] = {8, 9};
 
+int currentChannel = 0;
 int currentVolume = 0;
 
 int DEVICE_STATUS = 1;
@@ -156,10 +157,11 @@ void loop() {
     Serial.println( currentVolume > 0 ? "+" : "-");
   }
   int channel = readChannel();
-  if (channel > -1 ) {
+  if ( channel != currentChannel && channel > -1 ) {
     blink(100);
     Serial.print( "C");
     Serial.println(channel);
+    currentChannel = channel;
   }
 }
 
