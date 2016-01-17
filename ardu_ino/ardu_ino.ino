@@ -1,29 +1,14 @@
-#include "math.h"
+const int STATUS_LED_PIN = 13;
+const int VOLUME_UP_PIN = 3;
+const int VOLUME_DN_PIN = 2;
+const int CHANNEL_PINS[] = {8, 9};
 
-int STATUS_LED_PIN = 13;
-int VOLUME_UP_PIN = 18;
-int VOLUME_DN_PIN = 19;
-int STATION_UP_PIN = 20;
-int STATION_DN_PIN = 21;
-
+int currentChannel = 0;
 int currentVolume = 0;
-int currentStation = 0;
 
 int DEVICE_STATUS = 1;
 int DEVICE_STATUS_WAIT = 0;  // means status led should blink. it's 1 if it's fine and up
 int DEVICE_STATUS_UP = 1;    // led is on
-
-
-// station variables
-volatile int stat_seqstore = 0;
-volatile int stat_encoded = 0b11;
-volatile int stat_lastEncoded = 0;
-volatile long stat_encoderValue = 0;
-volatile long stat_lastEncoderValue = 0;
-volatile int stat_MSB = 1;
-volatile int stat_LSB = 1;
-volatile int stat_encoderValues[] = { 0, 0, 0, 0 };
-volatile int stat_encoderValueIndex = -1; 
 
 // volume variables
 volatile int vol_seqstore = 0;
@@ -35,6 +20,16 @@ volatile int vol_MSB = 1;
 volatile int vol_LSB = 1;
 
 String piCommand = "";
+
+int getPressedButton() {
+  for (int i = 0; i < (sizeof(CHANNEL_PINS)/sizeof(int)); i++) {
+    int state = digitalRead(CHANNEL_PINS[i]);
+    if (state == HIGH) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 // taken from http://hacking.majenko.co.uk/reading-serial-on-the-arduino
 int readSerialLine(int readch, char *buffer, int len) {
@@ -72,27 +67,9 @@ void readVolume() {
   vol_encoderValue = 0;
 }
 
-void readStation() {
-  // reset station
-  if (currentStation != 0) {
-    currentStation = 0;
-  }
-  if (stat_encoderValueIndex == 0) {
-    int sum = 0;
-    for(int i = 0; i < sizeof(stat_encoderValues) - 1; i++) {
-      int reading = stat_encoderValues[i];
-      stat_encoderValues[i] = 0;
-      sum += reading;
-    }
-    if (sum > 0) {
-      currentStation = 1;
-    }
-    else if (sum < 0) {
-      currentStation = -1;
-    } else {
-      currentStation = 0;
-    }
-  }
+int readChannel() {
+  int btn = getPressedButton();
+  return btn >= 0 ? btn : -1;
 }
 
 void setup() {
@@ -104,21 +81,15 @@ void setup() {
   pinMode( VOLUME_DN_PIN, INPUT );
   digitalWrite( VOLUME_DN_PIN, HIGH );
   digitalWrite( VOLUME_UP_PIN, HIGH );
-  pinMode( STATION_UP_PIN, INPUT );
-  pinMode( STATION_DN_PIN, INPUT );
-  digitalWrite( STATION_UP_PIN, HIGH );
-  digitalWrite( STATION_DN_PIN, HIGH );
+  for (int i = 0; i < sizeof(CHANNEL_PINS) - 1; i++) {
+    pinMode(CHANNEL_PINS[i], INPUT);
+  }
   
   // ints
   attachInterrupt( digitalPinToInterrupt(VOLUME_UP_PIN), updateVolume, CHANGE );
   attachInterrupt( digitalPinToInterrupt(VOLUME_DN_PIN), updateVolume, CHANGE );
-  attachInterrupt( digitalPinToInterrupt(STATION_UP_PIN), updateStation, CHANGE );
-  attachInterrupt( digitalPinToInterrupt(STATION_DN_PIN), updateStation, CHANGE );
-  
-  Serial.println( "Running internal setup" );
-  // do some stuff?
-  Serial.println( "Finished internal setup" );
-  
+
+  Serial.println( "OK" );
   digitalWrite( STATUS_LED_PIN, HIGH );
 }
 
@@ -157,42 +128,6 @@ void updateVolume() {
   }
 }
 
-//TODO always jumps 4 stations up and down o.O
-void updateStation() {
-  stat_MSB = digitalRead( STATION_UP_PIN );
-  stat_LSB = digitalRead( STATION_DN_PIN );
-  
-  stat_encoded = ( stat_MSB << 1 ) | stat_LSB; //converting the 2 pin value to single number
-
-  if ( ( stat_seqstore & 0x3 ) != stat_encoded ) {
-    // at least one of the bits has changed compared to last stable state
-    // (interrupt might bounce )
-    stat_seqstore = stat_seqstore << 2; //shift the next sequence step
-    stat_seqstore |= stat_encoded; // add encoded value
-    stat_seqstore = stat_seqstore & 0b1111; // only keep last 4 bits
-    
-    stat_lastEncoderValue = stat_encoderValue;
-    
-    // to the left
-    if ( stat_seqstore == 0b0100 ||
-         stat_seqstore == 0b1101 ||
-         stat_seqstore == 0b1011 ||
-         stat_seqstore == 0b0010) {
-      stat_encoderValueIndex = (stat_encoderValueIndex + 1) % 4;
-      stat_encoderValues[stat_encoderValueIndex] = -1;
-    }
-    
-    // to the right
-    if ( stat_seqstore == 0b0001 ||
-         stat_seqstore == 0b0111 ||
-         stat_seqstore == 0b1110 ||
-         stat_seqstore == 0b1000) {
-      stat_encoderValueIndex = (stat_encoderValueIndex + 1) % 4;
-      stat_encoderValues[stat_encoderValueIndex] = 1;
-    }
-  }
-}
-
 void blink(int n) {
   digitalWrite( STATUS_LED_PIN, LOW);
   delay(n);
@@ -221,11 +156,12 @@ void loop() {
     Serial.print( "V" );
     Serial.println( currentVolume > 0 ? "+" : "-");
   }
-  readStation();
-  if ( currentStation != 0 ) {
+  int channel = readChannel();
+  if ( channel != currentChannel && channel > -1 ) {
     blink(100);
     Serial.print( "C");
-    Serial.println( currentStation > 0 ? "+" : "-");
+    Serial.println(channel);
+    currentChannel = channel;
   }
 }
 
