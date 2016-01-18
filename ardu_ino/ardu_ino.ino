@@ -1,7 +1,8 @@
 const int STATUS_LED_PIN = 13;
 const int VOLUME_UP_PIN = 3;
 const int VOLUME_DN_PIN = 2;
-const int CHANNEL_PINS[] = {8, 9};
+const int CHANNEL_PINS[] = {4, 5};
+const int CHANNEL_LEDS[] = {8, 9};
 
 int currentChannel = -1;
 int currentVolume = 0;
@@ -81,8 +82,10 @@ void setup() {
   pinMode( VOLUME_DN_PIN, INPUT );
   digitalWrite( VOLUME_DN_PIN, HIGH );
   digitalWrite( VOLUME_UP_PIN, HIGH );
+
   for (int i = 0; i < sizeof(CHANNEL_PINS) - 1; i++) {
     pinMode(CHANNEL_PINS[i], INPUT);
+    pinMode(CHANNEL_LEDS[i], OUTPUT);
   }
   
   // ints
@@ -135,11 +138,21 @@ void blink(int n) {
   delay(n);
 }
 
+void activateChannelLED(int channel) {
+  // all off
+  for (int i = 0; i < (sizeof(CHANNEL_LEDS)/sizeof(int)); i++) {
+    digitalWrite(CHANNEL_LEDS[i], LOW);
+  }
+  // one on
+  digitalWrite(CHANNEL_LEDS[channel], HIGH);
+}
+
 void loop() {
   readSerial();
 
   if ( piCommand == "OK" ) {
     DEVICE_STATUS = DEVICE_STATUS_UP;
+    Serial.println("ACK");
   }
   
   // do nothing if no okay-dokey from pi arrived yet
@@ -162,6 +175,8 @@ void loop() {
     Serial.print( "C");
     Serial.println(channel);
     currentChannel = channel;
+    // enable LED of currently active channel
+    activateChannelLED(currentChannel);
   }
 }
 
